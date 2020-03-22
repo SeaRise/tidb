@@ -95,7 +95,8 @@ func groupToString(g *memo.Group, idMap map[*memo.Group]int) []string {
 // Format:
 // Selection_13 input:Group#2 gt(Column#1, Column#4)
 func groupExprToString(expr *memo.GroupExpr, idMap map[*memo.Group]int) string {
-	buffer := bytes.NewBufferString(expr.ExprNode.ExplainID().String())
+	//buffer := bytes.NewBufferString(expr.ExprNode.ExplainID().String())
+	buffer := bytes.NewBufferString(expr.ExprNode.TP())
 	if len(expr.Children) == 0 {
 		fmt.Fprintf(buffer, " %s", expr.ExprNode.ExplainInfo())
 	} else {

@@ -148,12 +148,8 @@ func (opt *Optimizer) exploreGroup(g *memo.Group, round int, ruleBatch Transform
 		curExpr.SetExplored(round)
 
 		// Explore child groups firstly.
-		for _, childGroup := range curExpr.Children {
-			for !childGroup.Explored(round) {
-				if err := opt.exploreGroup(childGroup, round, ruleBatch); err != nil {
-					return err
-				}
-			}
+		if err := opt.exploreChildGroup(curExpr, round, ruleBatch); err != nil {
+			return err
 		}
 
 		eraseCur, err := opt.findMoreEquiv(g, elem, round, ruleBatch)
@@ -162,6 +158,38 @@ func (opt *Optimizer) exploreGroup(g *memo.Group, round int, ruleBatch Transform
 		}
 		if eraseCur {
 			g.Delete(curExpr)
+		}
+	}
+	return nil
+}
+
+func (opt *Optimizer) exploreChildGroup(curExpr *memo.GroupExpr, round int, ruleBatch TransformationRuleBatch) error {
+	if len(curExpr.Children) > 1 {
+		doneCh := make(chan error, len(curExpr.Children))
+		for _, childGroup := range curExpr.Children {
+			finalChildGroup := childGroup
+			go func() {
+				for !finalChildGroup.Explored(round) {
+					if err := opt.exploreGroup(finalChildGroup, round, ruleBatch); err != nil {
+						doneCh <- err
+						return
+					}
+				}
+				doneCh <- nil
+			}()
+		}
+		for i := 0; i < len(curExpr.Children); i++ {
+			err := <- doneCh
+			if err != nil {
+				return err
+			}
+		}
+		close(doneCh)
+	} else if len(curExpr.Children) == 1 {
+		for !curExpr.Children[0].Explored(round) {
+			if err := opt.exploreGroup(curExpr.Children[0], round, ruleBatch); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
