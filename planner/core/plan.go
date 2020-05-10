@@ -16,6 +16,7 @@ package core
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"strconv"
 
 	"github.com/cznic/mathutil"
@@ -188,6 +189,9 @@ type LogicalPlan interface {
 
 	// MaxOneRow means whether this operator only returns max one row.
 	MaxOneRow() bool
+
+	// MaxRowCount return max row count which this operator will return.
+	MaxRowCount(childMaxRowCounts []*big.Int) *big.Int
 
 	// Get all the children.
 	Children() []LogicalPlan

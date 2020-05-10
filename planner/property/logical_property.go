@@ -14,6 +14,8 @@
 package property
 
 import (
+	"math/big"
+
 	"github.com/pingcap/tidb/expression"
 )
 
@@ -24,4 +26,5 @@ type LogicalProperty struct {
 	Stats     *StatsInfo
 	Schema    *expression.Schema
 	MaxOneRow bool
+	MaxRowCount *big.Int
 }
