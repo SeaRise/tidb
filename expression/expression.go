@@ -1489,13 +1489,10 @@ func wrapWithIsTrue(ctx sessionctx.Context, keepNull bool, arg Expression, wrapF
 		}
 	}
 	var fc *isTrueOrFalseFunctionClass
-	var funcName model.CIStr
 	if keepNull {
 		fc = &isTrueOrFalseFunctionClass{baseFunctionClass{ast.IsTruthWithNull, 1, 1}, opcode.IsTruth, true}
-		funcName = model.NewCIStr(ast.IsTruthWithNull)
 	} else {
 		fc = &isTrueOrFalseFunctionClass{baseFunctionClass{ast.IsTruthWithoutNull, 1, 1}, opcode.IsTruth, false}
-		funcName = model.NewCIStr(ast.IsTruthWithoutNull)
 	}
 	f, err := fc.getFunction(ctx, []Expression{arg})
 	if err != nil {
@@ -1503,7 +1500,7 @@ func wrapWithIsTrue(ctx sessionctx.Context, keepNull bool, arg Expression, wrapF
 	}
 
 	sf := &ScalarFunction{
-		FuncName: funcName,
+		FuncName: model.NewCIStr(fc.funcName),
 		Function: f,
 		RetType:  f.getRetTp(),
 	}
