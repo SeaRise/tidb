@@ -28,3 +28,24 @@ func TestChangePumpAndDrainer(t *testing.T) {
 	tk.MustMatchErrMsg("change pump to node_state ='paused' for node_id 'pump1'", "URL scheme must be http, https, unix, or unixs.*")
 	tk.MustMatchErrMsg("change drainer to node_state ='paused' for node_id 'drainer1'", "URL scheme must be http, https, unix, or unixs.*")
 }
+
+func TestIssue52985(t *testing.T) {
+	store := testkit.CreateMockStore(t)
+	tk := testkit.NewTestKit(t, store)
+
+	tk.MustExec("use test;")
+
+	tk.MustExec("drop table if exists t1;")
+	tk.MustExec("create table t1 (cc1 int,cc2 text);")
+	tk.MustExec("insert into t1 values (1, 'aaaa'),(2, 'bbbb'),(3, 'cccc');")
+
+	tk.MustExec("drop table if exists t2;")
+	tk.MustExec("create table t2 (cc1 int,cc2 text,primary key(cc1));")
+	tk.MustExec("insert into t2 values (2, '2');")
+
+	tk.MustExec("set tidb_executor_concurrency = 1;")
+	tk.MustExec("set tidb_window_concurrency = 100;")
+
+	ret := tk.MustQuery("SELECT DISTINCT cc2, cc2, cc1 FROM t2 UNION ALL SELECT count(1) over (partition by cc1), cc2, cc1 FROM t1;")
+	ret.Check(testkit.Rows("2 2 2", "1 bbbb 2", "1 cccc 3", "1 aaaa 1"))
+}
