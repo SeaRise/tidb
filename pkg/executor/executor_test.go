@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/pingcap/tidb/pkg/testkit"
+	"github.com/pingcap/tidb/pkg/util/logutil"
 )
 
 func TestChangePumpAndDrainer(t *testing.T) {
@@ -44,8 +45,11 @@ func TestIssue52985(t *testing.T) {
 	tk.MustExec("insert into t2 values (2, '2');")
 
 	tk.MustExec("set tidb_executor_concurrency = 1;")
+	tk.MustExec("set tidb_projection_concurrency = 1;")
 	tk.MustExec("set tidb_window_concurrency = 100;")
 
+	logutil.BgLogger().Warn("====================================================")
 	ret := tk.MustQuery("SELECT DISTINCT cc2, cc2, cc1 FROM t2 UNION ALL SELECT count(1) over (partition by cc1), cc2, cc1 FROM t1;")
+	logutil.BgLogger().Warn("====================================================")
 	ret.Check(testkit.Rows("2 2 2", "1 bbbb 2", "1 cccc 3", "1 aaaa 1"))
 }

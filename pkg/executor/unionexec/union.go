@@ -204,6 +204,8 @@ func (e *UnionExec) Next(ctx context.Context, req *chunk.Chunk) error {
 	}
 	req.SwapColumns(result.chk)
 	result.src <- result.chk
+
+	logutil.BgLogger().Warn("UnionExec::next", zap.Int("id: ", e.ID()), zap.String("result: ", req.ToString(e.RetFieldTypes())))
 	return nil
 }
 

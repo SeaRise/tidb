@@ -182,9 +182,13 @@ func (e *ProjectionExec) open(_ context.Context) error {
 func (e *ProjectionExec) Next(ctx context.Context, req *chunk.Chunk) error {
 	req.GrowAndReset(e.MaxChunkSize())
 	if e.isUnparallelExec() {
-		return e.unParallelExecute(ctx, req)
+		err := e.unParallelExecute(ctx, req)
+		logutil.BgLogger().Warn("ProjectionExec::unParallelExecute", zap.Int("id: ", e.ID()), zap.String("req: ", req.ToString(e.RetFieldTypes())))
+		return err
 	}
-	return e.parallelExecute(ctx, req)
+	err := e.parallelExecute(ctx, req)
+	logutil.BgLogger().Warn("ProjectionExec::parallelExecute", zap.Int("id: ", e.ID()), zap.String("req: ", req.ToString(e.RetFieldTypes())))
+	return err
 }
 
 func (e *ProjectionExec) isUnparallelExec() bool {
@@ -196,6 +200,7 @@ func (e *ProjectionExec) unParallelExecute(ctx context.Context, chk *chunk.Chunk
 	e.childResult.SetRequiredRows(chk.RequiredRows(), e.MaxChunkSize())
 	mSize := e.childResult.MemoryUsage()
 	err := exec.Next(ctx, e.Children(0), e.childResult)
+	logutil.BgLogger().Warn("ProjectionExec::unParallelExecute", zap.Int("id: ", e.ID()), zap.String("childResult: ", e.childResult.ToString(e.Children(0).RetFieldTypes())))
 	failpoint.Inject("ConsumeRandomPanic", nil)
 	e.memTracker.Consume(e.childResult.MemoryUsage() - mSize)
 	if err != nil {
@@ -448,6 +453,7 @@ func (w *projectionWorker) run(ctx context.Context) {
 		}
 
 		mSize := output.chk.MemoryUsage() + input.chk.MemoryUsage()
+		logutil.BgLogger().Warn("ProjectionExec::parallelExecute", zap.Int("id: ", w.proj.ID()), zap.String("childResult: ", input.chk.ToString(w.proj.Children(0).RetFieldTypes())))
 		err := w.evaluatorSuit.Run(w.sctx.GetExprCtx().GetEvalCtx(), w.sctx.GetSessionVars().EnableVectorizedExpression, input.chk, output.chk)
 		failpoint.Inject("ConsumeRandomPanic", nil)
 		w.proj.memTracker.Consume(output.chk.MemoryUsage() + input.chk.MemoryUsage() - mSize)

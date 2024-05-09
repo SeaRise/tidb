@@ -252,6 +252,8 @@ func (e *ShuffleExec) Next(ctx context.Context, req *chunk.Chunk) error {
 	req.SwapColumns(result.chk) // `shuffleWorker` will not send an empty `result.chk` to `e.outputCh`.
 	result.giveBackCh <- result.chk
 
+	logutil.BgLogger().Warn("ShuffleExec::next", zap.Int("id: ", e.ID()), zap.String("result: ", req.ToString(e.RetFieldTypes())))
+
 	return nil
 }
 
